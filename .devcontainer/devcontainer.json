@@ -1,0 +1,15 @@
+{
+    "name": "qemu",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "containerUser": "dev",
+    "mounts": [
+        "type=volume,source=qemu_env_bash_history,target=/bash_history",
+        "type=volume,source=qemu_env_ccache,target=/home/dev/.ccache"
+    ],
+    "postStartCommand": "/bin/bash ${containerWorkspaceFolder}/.devcontainer/scripts/post_start.sh ${localEnv:HOME}",
+    "remoteEnv": {
+        "PATH": "/usr/lib/ccache:${containerEnv:PATH}"
+    }
+}
