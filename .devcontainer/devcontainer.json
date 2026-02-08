@@ -1,5 +1,8 @@
 {
     "name": "qemu",
+    "runArgs": [
+        "--privileged"
+    ],
     "build": {
         "dockerfile": "Dockerfile"
     },

@@ -67,6 +67,13 @@ RUN apt-get update && \
                     python3-tomli \
                     ninja-build
 
+# Install dependencies for qemu tests
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive \
+    apt-get install --no-install-recommends -y \
+                    guestfs-tools \
+                    linux-image-generic
+
 # Setup ccache
 RUN /usr/sbin/update-ccache-symlinks
 
