@@ -12,11 +12,12 @@ UBUNTU_VERSIONS          = 22.04 24.04
 UBUNTU_ARCH              = x86_64
 
 BASE_IMAGES              = $(addprefix guest_base_ubuntu_, $(addsuffix _$(UBUNTU_ARCH).img, $(UBUNTU_VERSIONS)))
+KBUILD_IMAGES            = $(addprefix guest_kbuild_ubuntu_, $(addsuffix _$(UBUNTU_ARCH).img, $(UBUNTU_VERSIONS)))
 
 UBUNTU_2204_X86_URL      = https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 UBUNTU_2404_X86_URL      = https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
 
-ALL_IMAGES               = $(BASE_IMAGES)
+ALL_IMAGES               = $(BASE_IMAGES) $(KBUILD_IMAGES)
 
 
 # ---------------------------------------------------------------------
@@ -85,6 +86,16 @@ $(DOWNLOAD_DIR)/ubuntu_24.04_x86_64.img:
 $(BUILD_DIR)/guest_base_ubuntu_%_$(UBUNTU_ARCH).img: $(DOWNLOAD_DIR)/ubuntu_%_$(UBUNTU_ARCH).img
 	@mkdir -p "$(BUILD_DIR)" "$(WORK_DIR)"
 	@scripts/create_base_image.sh "$@" "$<" "$(WORK_DIR)/$(notdir $@)"
+
+
+# ---------------------------------------------------------------------
+#  X86 KERNEL BUILD TARGETS
+# ---------------------------------------------------------------------
+$(BUILD_DIR)/guest_kbuild_ubuntu_%_$(UBUNTU_ARCH).img: $(BUILD_DIR)/guest_base_ubuntu_%_$(UBUNTU_ARCH).img
+	@mkdir -p "$(BUILD_DIR)" "$(WORK_DIR)"
+	@cp -a "$<" "$(WORK_DIR)/$(notdir $@)"
+	@scripts/install_kernel_build_tools.sh "$(WORK_DIR)/$(notdir $@)"
+	@mv "$(WORK_DIR)/$(notdir $@)" "$@"
 
 
 # ---------------------------------------------------------------------
