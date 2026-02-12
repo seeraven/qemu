@@ -1,11 +1,12 @@
 #!/bin/bash
 #
-# Install all necessary tools required to build a custom kernel.
+# Update the annotations file.
 #
 set -e
 
 # Arguments
-TGTIMG="$1"
+QEMUIMG="$1"
+ANNOTATIONSDIR="$2"
 
 # Settings
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
@@ -17,9 +18,8 @@ SCP="scp -P 2242 -i ${PRIVATE_KEY} -o StrictHostKeychecking=no -o UserKnownHosts
 
 # Ensure we remove the target image file on errors
 err_handler() {
-    echo "ERROR DETECTED. DELETING $TGTIMG."
+    echo "ERROR DETECTED. SHUTTING DOWN QEMU."
     $SSH poweroff
-    rm -f "$TGTIMG"
     exit 1
 }
 trap 'err_handler' ERR
@@ -28,7 +28,7 @@ trap 'err_handler' ERR
 qemu-system-x86_64 -m 8G \
 	  -smp 16 \
 	  -enable-kvm \
-      -drive if=virtio,file=$TGTIMG,cache=none \
+      -drive if=virtio,file=$QEMUIMG,cache=none \
       -net user,hostfwd=tcp::2242-:22 -net nic -nographic \
       &> /dev/null &
 QEMU_PID=$!
@@ -44,29 +44,14 @@ done
 echo "Connected!"
 
 echo "Copy build files and scripts..."
-$SCP ${SCRIPT_DIR}/in_guest/update_system.sh ${SCRIPT_DIR}/in_guest/install_kernel_build_tools.sh root@localhost:
+$SCP ${SCRIPT_DIR}/in_guest/kernel_update_annotations.sh root@localhost:
 
-echo "Updating system ..."
-$SSH ./update_system.sh
+echo "Executing script in qemu guest..."
+$SSH ./kernel_update_annotations.sh
 
-echo "Rebooting system..."
-$SSH reboot || true
-
-echo "Waiting 10 seconds to let the system reboot..."
-sleep 10s
-
-echo "Waiting for the machine to start again..."
-STARTTIME=$(date +%s)
-while ! $SSH true; do
-    CURRENTTIME=$(date +%s)
-    TIMEDIFF=$(($CURRENTTIME-$STARTTIME))
-    echo " +${TIMEDIFF}: Sleeping for 10s before next attempt."
-    sleep 10s
-done
-echo "Up again!"
-
-echo "Installing kernel build stuff..."
-$SSH ./install_kernel_build_tools.sh
+echo "Copying annotations back to host..."
+mkdir -p "${ANNOTATIONSDIR}"
+$SCP "annotations-*" "${ANNOTATIONSDIR}/"
 
 echo "Power off the qemu machine..."
 $SSH poweroff || true

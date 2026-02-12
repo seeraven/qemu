@@ -36,9 +36,17 @@ usage:
 	@for IMG in $(BASE_IMAGES); do \
 	  echo "                 $(BUILD_DIR)/$$IMG"; \
 	  done
+	@echo "               Possible kernel build images:"
+	@for IMG in $(KBUILD_IMAGES); do \
+	  echo "                 $(BUILD_DIR)/$$IMG"; \
+	  done
 	@echo "  qemu-<IMG>   Start a qemu using the specified image."
 	@echo "               Possible qemu runs with one of the base images:"
 	@for IMG in $(BASE_IMAGES); do \
+	  echo "                 qemu/$$IMG"; \
+	  done
+	@echo "               Possible qemu runs with one of the kernel build images:"
+	@for IMG in $(KBUILD_IMAGES); do \
 	  echo "                 qemu/$$IMG"; \
 	  done
 	@echo "  ssh          Open a ssh into the image."
