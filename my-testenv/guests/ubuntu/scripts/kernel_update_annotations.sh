@@ -51,7 +51,7 @@ $SSH ./kernel_update_annotations.sh
 
 echo "Copying annotations back to host..."
 mkdir -p "${ANNOTATIONSDIR}"
-$SCP "annotations-*" "${ANNOTATIONSDIR}/"
+$SCP root@localhost:annotations-* "${ANNOTATIONSDIR}/"
 
 echo "Power off the qemu machine..."
 $SSH poweroff || true

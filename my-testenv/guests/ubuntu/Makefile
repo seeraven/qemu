@@ -6,6 +6,7 @@ export PATH := $(realpath $(shell pwd)/$(QEMU_BIN_PREFIX)):$(PATH)
 DOWNLOAD_DIR             = downloads
 WORK_DIR                 = work
 BUILD_DIR                = build
+KCONFIGS_DIR             = kconfig
 KERNELS_DIR              = kernels
 
 UBUNTU_VERSIONS          = 22.04 24.04
@@ -13,6 +14,7 @@ UBUNTU_ARCH              = x86_64
 
 BASE_IMAGES              = $(addprefix guest_base_ubuntu_, $(addsuffix _$(UBUNTU_ARCH).img, $(UBUNTU_VERSIONS)))
 KBUILD_IMAGES            = $(addprefix guest_kbuild_ubuntu_, $(addsuffix _$(UBUNTU_ARCH).img, $(UBUNTU_VERSIONS)))
+KCONFIG_TARGETS          = $(addprefix kconfig/ubuntu_, $(addsuffix _$(UBUNTU_ARCH), $(UBUNTU_VERSIONS)))
 
 UBUNTU_2204_X86_URL      = https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img
 UBUNTU_2404_X86_URL      = https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
@@ -30,28 +32,34 @@ usage:
 	@echo "Build images for qemu."
 	@echo
 	@echo "Available targets:"
-	@echo "  all          Build all images."
-	@echo "  build/<IMG>  Build only the specified image."
-	@echo "               Possible base images:"
+	@echo "  all           Build all images."
+	@echo "  build/<IMG>   Build only the specified image."
+	@echo "                Possible base images:"
 	@for IMG in $(BASE_IMAGES); do \
-	  echo "                 $(BUILD_DIR)/$$IMG"; \
+	  echo "                  $(BUILD_DIR)/$$IMG"; \
 	  done
-	@echo "               Possible kernel build images:"
+	@echo "                Possible kernel build images:"
 	@for IMG in $(KBUILD_IMAGES); do \
-	  echo "                 $(BUILD_DIR)/$$IMG"; \
+	  echo "                  $(BUILD_DIR)/$$IMG"; \
 	  done
-	@echo "  qemu-<IMG>   Start a qemu using the specified image."
-	@echo "               Possible qemu runs with one of the base images:"
+	@echo "  kconfig/<IMG> Use the kernel build image to update the"
+	@echo "                annotations (kernel config)."
+	@echo "                Possible variants:"
+	@for TARGET in $(KCONFIG_TARGETS); do \
+	  echo "                  $$TARGET"; \
+	  done
+	@echo "  qemu-<IMG>    Start a qemu using the specified image."
+	@echo "                Possible qemu runs with one of the base images:"
 	@for IMG in $(BASE_IMAGES); do \
-	  echo "                 qemu/$$IMG"; \
+	  echo "                  qemu/$$IMG"; \
 	  done
-	@echo "               Possible qemu runs with one of the kernel build images:"
+	@echo "                Possible qemu runs with one of the kernel build images:"
 	@for IMG in $(KBUILD_IMAGES); do \
-	  echo "                 qemu/$$IMG"; \
+	  echo "                  qemu/$$IMG"; \
 	  done
-	@echo "  ssh          Open a ssh into the image."
-	@echo "  clean        Clean the workspace."
-	@echo "  distclean    Clean the workspace including built kernels."
+	@echo "  ssh           Open a ssh into the image."
+	@echo "  clean         Clean the workspace."
+	@echo "  distclean     Clean the workspace including built kernels."
 	@echo
 
 
@@ -89,7 +97,7 @@ $(DOWNLOAD_DIR)/ubuntu_24.04_x86_64.img:
 
 
 # ---------------------------------------------------------------------
-#  X86 BUILD TARGETS
+#  BASE IMAGE TARGETS
 # ---------------------------------------------------------------------
 $(BUILD_DIR)/guest_base_ubuntu_%_$(UBUNTU_ARCH).img: $(DOWNLOAD_DIR)/ubuntu_%_$(UBUNTU_ARCH).img
 	@mkdir -p "$(BUILD_DIR)" "$(WORK_DIR)"
@@ -97,13 +105,23 @@ $(BUILD_DIR)/guest_base_ubuntu_%_$(UBUNTU_ARCH).img: $(DOWNLOAD_DIR)/ubuntu_%_$(
 
 
 # ---------------------------------------------------------------------
-#  X86 KERNEL BUILD TARGETS
+#  KERNEL BUILD IMAGE TARGETS
 # ---------------------------------------------------------------------
 $(BUILD_DIR)/guest_kbuild_ubuntu_%_$(UBUNTU_ARCH).img: $(BUILD_DIR)/guest_base_ubuntu_%_$(UBUNTU_ARCH).img
 	@mkdir -p "$(BUILD_DIR)" "$(WORK_DIR)"
 	@cp -a "$<" "$(WORK_DIR)/$(notdir $@)"
 	@scripts/install_kernel_build_tools.sh "$(WORK_DIR)/$(notdir $@)"
 	@mv "$(WORK_DIR)/$(notdir $@)" "$@"
+
+
+# ---------------------------------------------------------------------
+#  KERNEL CONFIG TARGETS
+# ---------------------------------------------------------------------
+kconfig/ubuntu_%_$(UBUNTU_ARCH): $(BUILD_DIR)/guest_kbuild_ubuntu_%_$(UBUNTU_ARCH).img
+	@cp -a "$<" "$(WORK_DIR)/$(notdir $@)"
+	@scripts/kernel_update_annotations.sh "$(WORK_DIR)/$(notdir $@)" "$(KCONFIGS_DIR)"
+	@rm -f "$(WORK_DIR)/$(notdir $@)"
+#	@scripts/kernel_update_annotations.sh "$<" "$(KCONFIGS_DIR)"
 
 
 # ---------------------------------------------------------------------

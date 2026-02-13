@@ -28,8 +28,13 @@ EOF
 echo "Import annotations..."
 debian/scripts/misc/annotations --arch amd64 --flavour generic --import config
 
+echo "Make amd64-generic the only flavour..."
+sed -i 's/# FLAVOUR: .*/# FLAVOUR: amd64-generic/g' debian.master/config/annotations
+
 echo "Update configurations..."
-fakeroot debian/rules clean updateconfigs
+fakeroot debian/rules clean
+yes '' | fakeroot debian/rules updateconfigs || true
+fakeroot debian/rules updateconfigs
 
 echo "Copy updated annotations file to annotations-$(uname -r)..."
 cp debian.master/config/annotations ../annotations-$(uname -r)
